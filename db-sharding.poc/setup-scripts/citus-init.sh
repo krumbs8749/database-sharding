@@ -33,7 +33,7 @@ docker run -d \
 echo "Waiting for the Citus worker nodes to start..."
 sleep 10
 
-# Step 4: Add worker nodes to the coordinator
+# Step 4: Add worker nodes to the coordinator with password authentication
 echo "Adding worker nodes to the coordinator..."
 docker exec -t citus-coordinator psql -U postgres -P pager=off -c "SELECT * FROM master_add_node('citus-worker-1', 5432);"
 sleep 2
@@ -48,16 +48,6 @@ docker exec -t citus-coordinator psql -U postgres -P pager=off -c "SELECT * FROM
 echo "Creating /scripts directory in the coordinator..."
 docker exec citus-coordinator mkdir -p /scripts
 sleep 2
-
-# Step 6: Copy the SQL migration script and run it
-# Make sure the SQL script path is correct on the host machine
-echo "Copying the SQL migration script..."
-docker cp ../src/main/resources/db/postgres/creates_tables_and_shards.sql citus-coordinator:/scripts/creates_tables_and_shards.sql
-sleep 2
-
-# Step 7: Run the SQL script inside the container
-echo "Running the SQL migration script..."
-docker exec -t citus-coordinator psql -U postgres -f /scripts/creates_tables_and_shards.sql
 
 echo "Citus cluster setup complete!"
 
