@@ -1,0 +1,58 @@
+databaseName: sharding_demo
+
+dataSources:
+  ds_0:
+    dataSourceClassName: com.zaxxer.hikari.HikariDataSource
+    driverClassName: org.postgresql.Driver
+    jdbcUrl: jdbc:postgresql://localhost:5452/postgres
+    username: postgres
+    password: postgres
+    connectionTimeoutMilliseconds: 30000
+    idleTimeoutMilliseconds: 60000
+    maxLifetimeMilliseconds: 1800000
+    maxPoolSize: 100
+    minimumIdle: 50
+  ds_1:
+    dataSourceClassName: com.zaxxer.hikari.HikariDataSource
+    driverClassName: org.postgresql.Driver
+    jdbcUrl: jdbc:postgresql://localhost:5462/postgres
+    username: postgres
+    password: postgres
+    connectionTimeoutMilliseconds: 30000
+    idleTimeoutMilliseconds: 60000
+    maxLifetimeMilliseconds: 1800000
+    maxPoolSize: 100
+    minimumIdle: 50
+
+rules:
+  - !SHARDING
+    tables:
+      t_user:
+        actualDataNodes: ds_${0..1}.t_user
+        databaseStrategy:
+          standard:
+            shardingColumn: id
+            shardingAlgorithmName: table_inline
+      t_order:
+        actualDataNodes: ds_${0..1}.t_order
+        databaseStrategy:
+          standard:
+            shardingColumn: id
+            shardingAlgorithmName: table_order_inline
+    shardingAlgorithms:
+      table_inline:
+        type: INLINE
+        props:
+          algorithm-expression: ds_${Math_abs(id.hashCode()) % 2}
+          allow-range-query-with-inline-sharding: true
+      table_order_inline:
+        type: INLINE
+        props:
+          algorithm-expression: ds_${id % 2}
+          allow-range-query-with-inline-sharding: true
+
+
+
+props:
+  sql-show: true
+  max-connections-size-per-query: 1

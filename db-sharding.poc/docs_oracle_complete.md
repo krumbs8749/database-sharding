@@ -75,6 +75,7 @@ This guide details a step-by-step approach for setting up an Oracle Sharding env
 - **Purpose**: Ensure all listeners are correctly configured for incoming connections.
 - **Command**:
   ```bash
+  
   docker exec -it <container_name> bash -c "lsnrctl status"
   ```
 - **Location**: Run in Catalog, Shard1, and Shard2 containers.
@@ -113,29 +114,68 @@ This guide details a step-by-step approach for setting up an Oracle Sharding env
 ---
 
 ### 5. Shard Setup and Permissions for All-Shards User
+### Step 5.1 allow gsmuser to execute dbms_gsm_fix.validateShard
+- **In each shard container**
+```bash
+sqlplus / as sysdba
+```
+```sql
+create or replace directory DATA_PUMP_DIR as '/u01/app/oracle/oradata';
+```
+```sql
+alter session set container=orcl[1/2]pdb; 
+-- or connect to shard through sqlplus sys/oracle@localhost:1521/orcl1pdb as sysdba
+```
+```sql
+CREATE PUBLIC SYNONYM dbms_gsm_fix FOR sys.dbms_gsm_fix;
+grant read, write on directory DATA_PUMP_DIR to gsmadmin_internal;
+```
+```bash
+sqlplus gsmuser/oracle@localhost:1521/orcl1pdb
+```
 
-#### Step 5.1: Create All-Shards User with Necessary Privileges
+
+```sql
+execute dbms_gsm_fix.validateshard
+```
+
+### Step 5.2: Setting db_files so multiple tablspace set can be created
+
+To set or adjust `db_files`, follow these steps:
+
+1. **Set the Parameter in SPFILE**:
+   ```sql
+   ALTER SYSTEM SET db_files = 1024 SCOPE=SPFILE;
+   ```
+
+2. **Restart the Database** to apply changes:
+   ```sql
+   SHUTDOWN IMMEDIATE;
+   STARTUP;
+   ```
+#### Step 5.3: Create All-Shards User with Necessary Privileges
 - **Location**: Catalog Container.
 - **Command**:
   ```bash
-  sqlplus sys/oracle@localhost:1521/CATDB as sysdba
+  sqlplus sys/oracle@localhost:1521/GDS\$CATALOG.oradbcloud as sysdba
+
   ```
   ```sql
   ALTER SESSION ENABLE SHARD DDL;
-  CREATE USER allshardsuser IDENTIFIED BY password;
-  GRANT ALL PRIVILEGES TO allshardsuser;
-  GRANT GSMADMIN_ROLE TO allshardsuser;
-  GRANT SELECT_CATALOG_ROLE TO allshardsuser;
-  GRANT CONNECT, RESOURCE TO allshardsuser;
-  GRANT DBA TO allshardsuser;
-  GRANT EXECUTE ON DBMS_CRYPTO TO allshardsuser;
+  CREATE USER allshardsuser IDENTIFIED BY oracle;
+  GRANT ALL PRIVILEGES TO mtsm_timeseries;
+  GRANT GSMADMIN_ROLE TO mtsm_timeseries;
+  GRANT SELECT_CATALOG_ROLE TO mtsm_timeseries;
+  GRANT CONNECT, RESOURCE TO mtsm_timeseries;
+  GRANT DBA TO mtsm_timeseries;
+  GRANT EXECUTE ON DBMS_CRYPTO TO mtsm_timeseries;
   ```
 - **Verification**: Confirm that `allshardsuser` is created on all shards by querying in Shard1 and Shard2 containers:
   ```sql
   SELECT username FROM dba_users WHERE username = 'allshardsuser';
   ```
 
-#### Step 5.2: Check for Shard Validation Issues
+#### Step 5.4: Check for Shard Validation Issues
 - **Action**: Use `gdsctl validate` to verify catalog and shard synchronization.
 - **Command**:
   ```bash
@@ -151,7 +191,7 @@ This guide details a step-by-step approach for setting up an Oracle Sharding env
 - **Action**: Connect to the query coordinator and run distributed queries.
 - **Command**:
   ```bash
-  sqlplus allshardsuser/password@localhost:1521/GDS$CATALOG.oradbcloud
+  sqlplus allshardsuser/oracle@localhost:1521/GDS\$CATALOG.oradbcloud
   ```
 - **Example**:
 
@@ -165,7 +205,7 @@ This guide details a step-by-step approach for setting up an Oracle Sharding env
   ```sql
   ALTER SESSION ENABLE SHARD DDL;
   CREATE TABLESPACE SET ts_data_set USING TEMPLATE (
-    DATAFILE SIZE 100M AUTOEXTEND ON NEXT 10M MAXSIZE UNLIMITED
+    DATAFILE SIZE 100M AUTOEXTEND ON NEXT 10M MAXSIZE 5G
     EXTENT MANAGEMENT LOCAL SEGMENT SPACE MANAGEMENT AUTO
   ) IN SHARDSPACE shardspaceora;
   ```
@@ -196,8 +236,8 @@ This guide details a step-by-step approach for setting up an Oracle Sharding env
 #### Step 7.2: Insert Data
 - Insert into the tables:
   ```sql
-  INSERT INTO heads (head_id, head_name) VALUES (1, 'Head 1');
-  INSERT INTO data_points (data_id, head_id, data_value) VALUES (101, 1, 500);
+  INSERT INTO heads (head_id, head_name) VALUES (3, 'Head 3');
+  INSERT INTO data_points (data_id, head_id, data_value) VALUES (101, 2, 500);
   COMMIT;
   ```
 #### Step 7.3: Validate Data Distribution
@@ -237,3 +277,8 @@ In this architecture:
 - The `PARENT` clause and table family concept allow for related data to be co-located within shards for optimized data access patterns.
 
 This setup ensures that all data is distributed and sharded correctly, allowing for horizontal scalability and efficient query execution across multiple shards.
+
+CREATE TABLESPACE SET ts_dataset USING TEMPLATE (
+DATAFILE SIZE 100M AUTOEXTEND ON NEXT 10M MAXSIZE 10G
+EXTENT MANAGEMENT LOCAL SEGMENT SPACE MANAGEMENT AUTO
+) IN SHARDSPACE shardspaceora;

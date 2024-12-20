@@ -1,0 +1,26 @@
+<persistence xmlns="https://jakarta.ee/xml/ns/persistence"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:schemaLocation="https://jakarta.ee/xml/ns/persistence https://jakarta.ee/xml/ns/persistence/persistence_3_0.xsd"
+             version="3.0">
+    <persistence-unit name="shardingspherePU">
+        <!-- ShardingSphere JDBC Datasource -->
+        <properties>
+            <property name="jakarta.persistence.jdbc.driver" value="org.apache.shardingsphere.driver.ShardingSphereDriver" />
+            <property name="jakarta.persistence.jdbc.url" value="jdbc:shardingsphere:classpath:sharding.yaml" />
+            <!--<property name="jakarta.persistence.jdbc.driver" value="org.postgresql.Driver" />
+            <property name="jakarta.persistence.jdbc.url" value="jdbc:postgresql://localhost:5462/postgres" />-->
+            <property name="jakarta.persistence.jdbc.user" value="postgres" />
+            <property name="jakarta.persistence.jdbc.password" value="postgres" />
+
+            <!-- Hibernate Properties -->
+            <property name="hibernate.hbm2ddl.auto" value="validate" />
+            <property name="hibernate.show_sql" value="false" />
+            <property name="hibernate.format_sql" value="true" />
+
+
+
+            <property name="hibernate.jdbc.batch_size" value="50"/>
+            <property name="hibernate.jdbc.fetch_size" value="10000"/>
+        </properties>
+    </persistence-unit>
+</persistence>

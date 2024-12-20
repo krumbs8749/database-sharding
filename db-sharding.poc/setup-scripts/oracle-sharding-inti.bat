@@ -48,6 +48,7 @@ docker run -d --hostname oshard-catalog-0 ^
   --dns-search=%DOMAIN% ^
   --network=%NETWORK_NAME% ^
   --ip=%CATALOG_IP% ^
+  -p 1521:1521 ^
   -e DOMAIN=%DOMAIN% ^
   -e ORACLE_SID=CATCDB ^
   -e ORACLE_PDB=CAT1PDB ^
@@ -107,6 +108,8 @@ docker run -d --hostname oshard2-0 ^
   --privileged=false ^
   --name %SHARD2_CONTAINER% oracle/database-sharding:21.3.0-ee-modified
 
+rem ocker logs -f oracle-shard2
+
 rem Wait for the catalog container to complete the GSM catalog setup
 echo Waiting for the catalog setup to complete...
 :WaitForCatalogSetup
@@ -150,15 +153,3 @@ docker logs oracle-gsm1
 rem Final Message
 echo Oracle Sharding setup completed.
 pause
-CREATE SHARDED TABLE data_points (
-  data_id      NUMBER,
-  head_id      NUMBER,
-  data_value   NUMBER,
-  PRIMARY KEY (head_id, data_id),
-  CONSTRAINT fk_heads
-    FOREIGN KEY (head_id) REFERENCES heads (head_id)
-)
-PARENTS heads
-PARTITIONS AUTO
-PARTITION BY CONSISTENT HASH (head_id)
-TABLESPACE SET ts_data_set;

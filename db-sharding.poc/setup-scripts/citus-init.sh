@@ -7,7 +7,7 @@ docker network create citus-network
 docker run -d \
   --name citus-coordinator \
   --network citus-network \
-  -e POSTGRES_PASSWORD=citus \
+  -e POSTGRES_PASSWORD=postgres \
   -p 5442:5432 \
   citusdata/citus:12.1
 
@@ -20,13 +20,13 @@ done
 docker run -d \
   --name citus-worker-1 \
   --network citus-network \
-  -e POSTGRES_PASSWORD=citus \
+  -e POSTGRES_PASSWORD=postgres \
   citusdata/citus:12.1
 
 docker run -d \
   --name citus-worker-2 \
   --network citus-network \
-  -e POSTGRES_PASSWORD=citus \
+  -e POSTGRES_PASSWORD=postgres \
   citusdata/citus:12.1
 
 # Wait for the workers to start
